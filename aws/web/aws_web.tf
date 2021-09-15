@@ -21,6 +21,10 @@ resource "aws_instance" "web_server" {
     vpc_security_group_ids = [ aws_security_group.web_server.id ]
     user_data = file("apache.sh")
 
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
     tags = {
       Name = "web-server"
       OS = "Ubuntu 20.04"
@@ -28,26 +32,35 @@ resource "aws_instance" "web_server" {
     }
 }
 
+resource "aws_eip" "static_ip" {
+  instance=aws_instance.web_server.id 
+}
+
+
 resource "aws_security_group" "web_server" {
   name        = "WebServer Security Group"
-  description = "SecurityGroup ports 80 443"
+  description = "SecurityGroup ports 80 443 22"
 # vpc_id      = aws_vpc.main.id
 
-  ingress    {
-      description      = "port 80"
+dynamic "ingress" {
+ for_each = ["80", "443", "22"]
+
+   content    {
+      description      = "open ports"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+}
+
+/*   ingress    {
+      description      = "open port 80"
       from_port        = 80
       to_port          = 80
       protocol         = "tcp"
       cidr_blocks      = ["0.0.0.0/0"]
-    }
-  
-  ingress    {
-      description      = "TLS from VPC"
-      from_port        = 443
-      to_port          = 443
-      protocol         = "tcp"
-      cidr_blocks      = ["0.0.0.0/0"]
-    }  
+    }*/
 
   egress    {
       from_port        = 0
