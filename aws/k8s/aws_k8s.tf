@@ -14,12 +14,12 @@ provider "aws" {
 
 
 
-resource "aws_instance" "web_server" {
+resource "aws_instance" "k8s_master" {
     ami                   = "ami-09e67e426f25ce0d7"
     instance_type         = "t2.micro"
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.web_server.id ]
-    user_data = file("apache.sh")
+    vpc_security_group_ids = [ aws_security_group.k8s_master.id ]
+    user_data = file("k8s_master.sh")
     key_name = "ssh"
 
 lifecycle {
@@ -27,19 +27,19 @@ lifecycle {
   create_before_destroy = true //  create a new instance and then remove old
 }
     tags = {
-      Name = "web-server"
+      Name = "k8s-master"
       OS = "Ubuntu 20.04"
-      Project = "web server"
+      Project = "k8s-master"
     }
 }
 
 resource "aws_eip" "static_ip" {
-  instance=aws_instance.web_server.id 
+  instance=aws_instance.k8s_master.id 
 }
 
 
-resource "aws_security_group" "web_server" {
-  name        = "WebServer Security Group"
+resource "aws_security_group" "k8s_master" {
+  name        = "k8s-master Security Group"
   description = "SecurityGroup ports 80 443 22"
 # vpc_id      = aws_vpc.main.id
 
@@ -71,6 +71,6 @@ dynamic "ingress" {
     }
 
   tags = {
-    Name = "Security Group for WebServer"
+    Name = "Security Group for k8sMaster"
   }
 }
