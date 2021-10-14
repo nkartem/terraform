@@ -52,3 +52,13 @@ sudo rabbitmq-plugins enable rabbitmq_management
 sudo ufw allow proto tcp from any to any port 22,5672,15672
 sudo rabbitmqctl add_user admin StrongPassword
 sudo rabbitmqctl set_user_tags admin administrator
+##################################
+sudo mkdir rbmq
+sudo chmod 777 rbmq/
+cd rbmq
+touch rabbitmqadmin
+cat <<EOF > rabbitmqadmin
+123213
+EOF
+# sudo chmod +x rabbitmqadmin
+# sudo mv rabbitmqadmin /usr/local/bin
