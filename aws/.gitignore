@@ -3,4 +3,5 @@
 *.tfstate
 *.tfstate.backup
 /web/.terraform
+/rabbitmq/.terraform
 *.exe
