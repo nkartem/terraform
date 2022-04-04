@@ -12,7 +12,9 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_eip" "lb" {
-  instance = aws_instance.web.id
-  vpc      = true
+resource "aws_eip" "eip1" {
+  vpc              = true
+}
+
+resource "aws_eip" "eip2" {
 }
