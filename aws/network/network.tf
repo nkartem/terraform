@@ -53,7 +53,7 @@ resource "aws_subnet" "name_database_subnet" {
   cidr_block = "10.10.3.0/24"
 
   tags = {
-    Name = "database subnet"
+    Name = "Database"
   }
 }
 
@@ -76,20 +76,59 @@ resource "aws_route_table" "name_route_table_public" {
   }
 }
 
+resource "aws_route_table" "name_route_table_private" {
+  vpc_id = aws_vpc.name_vpc.id
+
+  route = []
+  
+  tags = {
+    Name = "name_route_table_private"
+  }
+}
+
+resource "aws_route_table" "name_route_table_database" {
+  vpc_id = aws_vpc.name_vpc.id
+
+  route = []
+  
+  tags = {
+    Name = "name_route_table_database"
+  }
+}
+
 # association route table whith  subnet
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.name_public_subnet.id
   route_table_id = aws_route_table.name_route_table_public.id
 }
 
+resource "aws_route_table_association" "private" {
+  subnet_id      = aws_subnet.name_private_subnet.id
+  route_table_id = aws_route_table.name_route_table_private.id
+}
 
-# # Create Elastic IP
-# # resource "aws_eip" "eip1" {
-# #   vpc              = true
-# # }
+resource "aws_route_table_association" "database" {
+  subnet_id      = aws_subnet.name_database_subnet.id
+  route_table_id = aws_route_table.name_route_table_database.id
+}
 
-# # resource "aws_eip" "eip2" {
-# # }
+# Create Elastic IP
+resource "aws_eip" "eip1" {
+}
+
+
+# Create NAT Gateway
+resource "aws_nat_gateway" "name_nat_gateway" {
+  allocation_id = aws_eip.eip1.id
+  subnet_id     = aws_subnet.name_public_subnet.id
+  tags = {
+    Name = "gw NAT"
+  }
+
+  # To ensure proper ordering, it is recommended to add an explicit dependency
+  # on the Internet Gateway for the VPC.
+  depends_on = [aws_internet_gateway.name_igw]
+}
 
 # # Create security group
 # resource "aws_security_group" "name_security_group1" {
