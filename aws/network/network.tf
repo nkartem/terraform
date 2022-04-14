@@ -29,45 +29,57 @@ resource "aws_internet_gateway" "name_igw" {
   }
 }
 
-# # Create subnet
-# resource "aws_subnet" "name_public_subnet" {
-#   vpc_id     = aws_vpc.name_vpc.id
-#   cidr_block = "10.10.1.0/24"
+# Create subnet
+resource "aws_subnet" "name_public_subnet" {
+  vpc_id     = aws_vpc.name_vpc.id
+  cidr_block = "10.10.1.0/24"
 
-#   tags = {
-#     Name = "Public"
-#   }
-# }
+  tags = {
+    Name = "Public"
+  }
+}
 
-# resource "aws_subnet" "name_private_subnet" {
-#   vpc_id     = aws_vpc.name_vpc.id
-#   cidr_block = "10.10.2.0/24"
+resource "aws_subnet" "name_private_subnet" {
+  vpc_id     = aws_vpc.name_vpc.id
+  cidr_block = "10.10.2.0/24"
 
-#   tags = {
-#     Name = "Private"
-#   }
-# }
+  tags = {
+    Name = "Private"
+  }
+}
 
-# resource "aws_subnet" "database" {
-#   vpc_id     = aws_vpc.name_vpc.id
-#   cidr_block = "10.10.3.0/24"
+resource "aws_subnet" "name_database_subnet" {
+  vpc_id     = aws_vpc.name_vpc.id
+  cidr_block = "10.10.3.0/24"
 
-#   tags = {
-#     Name = "database subnet"
-#   }
-# }
+  tags = {
+    Name = "database subnet"
+  }
+}
 
-resource "aws_route_table" "name_route_table" {
+# Create Route Table
+resource "aws_route_table" "name_route_table_public" {
   vpc_id = aws_vpc.name_vpc.id
 
   route {
     cidr_block = "10.0.1.0/24"
     gateway_id = aws_internet_gateway.name_igw.id
   }
+  
+  # route {
+  #   cidr_block = "0.0.0.0/0"
+  #   gateway_id = aws_internet_gateway.name_igw.id
+  # }
 
   tags = {
-    Name = "name_route_table"
+    Name = "name_route_table_public"
   }
+}
+
+# association route table whith  subnet
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.name_public_subnet.id
+  route_table_id = aws_route_table.name_route_table_public.id
 }
 
 
