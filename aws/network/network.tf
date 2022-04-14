@@ -87,3 +87,29 @@ dynamic "ingress" {
     Name = "Security Group for SomeName2"
   }
 }
+
+# Create VPC
+resource "aws_vpc" "name_vpc" {
+  cidr_block = "10.10.0.0/16"
+  tags = {
+    Name = "name-vpc-terraform"
+  }
+}
+# Create subnet
+resource "aws_subnet" "name_private_subnet" {
+  vpc_id     = aws_vpc.name_vpc.id
+  cidr_block = "10.10.1.0/24"
+
+  tags = {
+    Name = "Private"
+  }
+}
+
+resource "aws_subnet" "name_public_subnet" {
+  vpc_id     = aws_vpc.name_vpc.id
+  cidr_block = "10.10.2.0/24"
+
+  tags = {
+    Name = "Public"
+  }
+}
