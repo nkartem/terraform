@@ -33,6 +33,7 @@ resource "aws_internet_gateway" "name_igw" {
 resource "aws_subnet" "name_public_subnet" {
   vpc_id     = aws_vpc.name_vpc.id
   cidr_block = "10.10.1.0/24"
+  map_public_ip_on_launch = true
 
   tags = {
     Name = "Public"
