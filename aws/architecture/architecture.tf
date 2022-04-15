@@ -62,15 +62,11 @@ resource "aws_subnet" "name_database_subnet" {
 resource "aws_route_table" "name_route_table_public" {
   vpc_id = aws_vpc.name_vpc.id
 
+  
   route {
-    cidr_block = "10.10.1.0/24"
+    cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.name_igw.id
   }
-  
-  # route {
-  #   cidr_block = "0.0.0.0/0"
-  #   gateway_id = aws_internet_gateway.name_igw.id
-  # }
 
   tags = {
     Name = "name_route_table_public"
@@ -81,7 +77,7 @@ resource "aws_route_table" "name_route_table_private" {
   vpc_id = aws_vpc.name_vpc.id
 
   route {
-    cidr_block = "10.10.2.0/24"
+    cidr_block = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.name_nat_gateway.id
   }
   
@@ -242,8 +238,8 @@ resource "aws_instance" "bastion" {
     subnet_id   = aws_subnet.name_public_subnet.id
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
-#    user_data = file("rabbitmq.sh")
-    key_name = "ssh-ter"
+#    user_data = file("script.sh")
+    key_name = "key-ssh"
 
 lifecycle {
 #  privent_destroy = true //can not destroy resource
@@ -251,6 +247,51 @@ lifecycle {
 }
     tags = {
       Name = "Bastion"
+      Subnet = "Public"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
+
+resource "aws_instance" "server1" {
+    ami                   = "ami-03ededff12e34e59e"
+    instance_type         = "t2.micro"
+    subnet_id   = aws_subnet.name_private_subnet.id
+#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+#    user_data = file("script.sh")
+    key_name = "key-ssh"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "server1-app"
+      Subnet = "Private"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
+
+resource "aws_instance" "server2" {
+    ami                   = "ami-03ededff12e34e59e"
+    instance_type         = "t2.micro"
+    subnet_id   = aws_subnet.name_database_subnet.id
+#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+#    user_data = file("script.sh")
+    key_name = "key-ssh"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "server2-DB"
+      Subnet = "Database"
       OS = "Amazon Linux 2"
       Project = "name Project"
       Terraform = "Yes"
