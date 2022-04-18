@@ -239,7 +239,7 @@ resource "aws_instance" "bastion" {
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
 #    user_data = file("script.sh")
-    key_name = "key-ssh"
+    key_name = "ssh-key2"
 
 lifecycle {
 #  privent_destroy = true //can not destroy resource
@@ -261,7 +261,7 @@ resource "aws_instance" "server1" {
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
 #    user_data = file("script.sh")
-    key_name = "key-ssh"
+    key_name = "ssh-key2"
 
 lifecycle {
 #  privent_destroy = true //can not destroy resource
@@ -283,7 +283,7 @@ resource "aws_instance" "server2" {
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
 #    user_data = file("script.sh")
-    key_name = "key-ssh"
+    key_name = "ssh-key2"
 
 lifecycle {
 #  privent_destroy = true //can not destroy resource
