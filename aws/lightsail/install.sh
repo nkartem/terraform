@@ -4,8 +4,7 @@ touch /home/bitnami/myfile.txt
 mkdir /opt/bitnami/projects
 chown bitnami:bitnami /opt/bitnami/projects
 cd /opt/bitnami/projects
-express --view pug /opt/bitnami/projects/myapp
-cd /opt/bitnami/projects/myapp
+
 ###############################
 touch /opt/bitnami/apache/conf/vhosts/myapp-http-vhost.conf
 cat > /opt/bitnami/apache/conf/vhosts/myapp-http-vhost.conf <<EOF
@@ -37,7 +36,8 @@ cat > /opt/bitnami/apache/conf/vhosts/myapp-https-vhost.conf <<EOF
 EOF
 /opt/bitnami/ctlscript.sh restart apache
 ###########################
-
+express --view pug /opt/bitnami/projects/myapp
+cd /opt/bitnami/projects/myapp
 npm install
 #DEBUG=myapp:* ./bin/www 
 forever start /opt/bitnami/projects/myapp/bin/www
