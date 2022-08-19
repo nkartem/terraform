@@ -20,10 +20,10 @@ resource "aws_lightsail_instance" "server_nj" {
 #  key_pair_name     = "some_key_name"
   user_data = file("install.sh")
 
-  provisioner "file" {
-    source      = "test.txt"
-    destination = "/home/bitnami/"
-  }
+  # provisioner "file" {
+  #   source      = "~/files/test1.txt"
+  #   destination = "/home/bitnami/"
+  # }
 
   lifecycle {
 #  privent_destroy = true //can not destroy resource
@@ -55,12 +55,6 @@ resource "aws_lightsail_instance_public_ports" "test" {
     protocol  = "tcp"
     from_port = 443
     to_port   = 443
-  }
-
-    port_info {
-    protocol  = "tcp"
-    from_port = 3000
-    to_port   = 3000
   }
 }
 
