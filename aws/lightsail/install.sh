@@ -36,7 +36,9 @@ cat > /opt/bitnami/apache/conf/vhosts/myapp-https-vhost.conf <<EOF
 EOF
 /opt/bitnami/ctlscript.sh restart apache
 ###########################
-express --view pug /opt/bitnami/projects/myapp
+cd /opt/bitnami/projects
+sudo -H -u bitnami -c 'express --view pug /opt/bitnami/projects/myapp'
+#express --view pug /opt/bitnami/projects/myapp
 cd /opt/bitnami/projects/myapp
 npm install
 #DEBUG=myapp:* ./bin/www 
