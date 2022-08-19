@@ -20,10 +20,15 @@ resource "aws_lightsail_instance" "server_nj" {
 #  key_pair_name     = "some_key_name"
   user_data = file("install.sh")
 
-lifecycle {
+  provisioner "file" {
+    source      = "test.txt"
+    destination = "/home/bitnami/"
+  }
+
+  lifecycle {
 #  privent_destroy = true //can not destroy resource
   create_before_destroy = true //  create a new instance and then remove old
-}
+  }
 
   tags = {
     foo = "bar"
