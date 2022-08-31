@@ -60,11 +60,52 @@ dynamic "ingress" {
 }
 
 
-resource "aws_s3_bucket" "buck" {
-  bucket = "my-tf-test-bucketmq-kafka"
+resource "aws_s3_bucket" "mybucket" {
+  bucket = "bucketname-kafka"
+  acl    = "private"
 
   tags = {
     Name        = "My bucket"
     Environment = "Dev"
   }
 }
+
+
+# #### IAM policy
+# resource "aws_iam_role_policy" "s3_one_bucket" {
+#   name = "s3_one_bucket"
+#   role = aws_iam_role.s3roleec2.id
+
+#   policy = jsonencode({
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Effect": "Allow",
+#             "Action": [
+#                 "s3:GetObject",
+#                 "s3:PutObject",
+#                 "s3:PutObjectAcl"
+#             ],
+#             "Resource": "arn:aws:s3:::bucketname-kafka/*"
+#         }
+#     ]
+#   })
+# }
+
+# #### IAM role
+# resource "aws_iam_role" "s3roleec2" {
+#   name = "s3roleec2"
+
+#   assume_role_policy = jsonencode({
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Effect": "Allow",
+#             "Principal": {
+#                 "Service": "ec2.amazonaws.com"
+#             },
+#             "Action": "sts:AssumeRole"
+#         }
+#       ]
+#   })
+# }
