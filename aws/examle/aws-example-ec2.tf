@@ -19,7 +19,7 @@ resource "aws_instance" "AL2" {
     user_data = file("install.sh")
     vpc_security_group_ids = [ aws_security_group.web_al2.id ]
 #    count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.de
-    key_name = "terra" # You must create key
+    key_name = "ssh1" # You must create key
 
     tags = {
       Name = "AL2"
