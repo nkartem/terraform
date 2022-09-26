@@ -20,7 +20,7 @@ resource "aws_instance" "web_server" {
 #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.web_server.id ]
     user_data = file("apache.sh")
-    key_name = "ssh"
+#    key_name = "ssh"
 
 lifecycle {
 #  privent_destroy = true //can not destroy resource
