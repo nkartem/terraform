@@ -20,3 +20,11 @@ cd /opt/
 sudo git clone https://github.com/nkartem/docker.git
 cd /opt/docker/kafka/kafka-serv
 #docker-compose up -d
+
+
+#########Mount disk#########
+lsblk
+sudo file -s /dev/xvdf
+sudo mkfs -t xfs /dev/xvdf
+sudo mkdir /data
+sudo mount /dev/xvdf /data
