@@ -7,11 +7,13 @@
   }
 }
 
-# Configure the AWS Provider
+## Configure the AWS Provider
 provider "aws" {
   region = "us-west-2"
 }
 
+
+## Launch templates
 resource "aws_launch_template" "nametmpl" {
   name                    = "mytmpl"
   description             = "mytmplapp"
@@ -33,6 +35,7 @@ resource "aws_launch_template" "nametmpl" {
   }
 }
 
+## Autoscaling Group
 resource "aws_autoscaling_group" "asgname" {
   name = "asg"
   desired_capacity   = 1
@@ -54,22 +57,22 @@ resource "aws_autoscaling_group" "asgname" {
   }
 }
 
-resource "aws_autoscaling_policy" "example" {
-  name = "target-tracking-policy"
-  estimated_instance_warmup = 300
-  autoscaling_group_name = aws_autoscaling_group.asgname.id
-  policy_type               = "TargetTrackingScaling"
+# resource "aws_autoscaling_policy" "example" {
+#   name = "target-tracking-policy"
+#   estimated_instance_warmup = 300
+#   autoscaling_group_name = aws_autoscaling_group.asgname.id
+#   policy_type               = "TargetTrackingScaling"
 
-  target_tracking_configuration {
-        disable_scale_in = false
-        target_value     = 50
+#   target_tracking_configuration {
+#         disable_scale_in = false
+#         target_value     = 50
 
-        predefined_metric_specification {
-            predefined_metric_type = "ASGAverageCPUUtilization"
-            }
-        }
+#         predefined_metric_specification {
+#             predefined_metric_type = "ASGAverageCPUUtilization"
+#             }
+#         }
 
-}
+# }
 
 ######################################################
 
@@ -532,4 +535,46 @@ module "cluster" {
     Environment = "dev"
     Terraform   = "true"
   }
+}
+
+
+
+##########  CloudWatch ############
+resource "aws_cloudwatch_metric_alarm" "CPU-Hight" {
+  alarm_name                = "CPU-Hight"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  datapoints_to_alarm       = "1"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "300"
+  statistic                 = "Average"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors autoscaling cpu utilization"
+  #insufficient_data_actions = ["arn:aws:autoscaling:us-west-2:477686778249:scalingPolicy:1e7b0c9c-ebdb-484f-8d7b-2197c5989ded:autoScalingGroupName/asterisk:policyName/Add-CPU-High",]
+  insufficient_data_actions = []
+  dimensions                = {
+         "AutoScalingGroupName" = "asterisk"
+        }
+# id                        = "CPU-Hight"
+  tags                      = {}
+}
+
+resource "aws_cloudwatch_metric_alarm" "CPU-Low" {
+  alarm_name                = "CPU-Low"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  datapoints_to_alarm       = "3"
+  evaluation_periods        = "3"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "300"
+  statistic                 = "Average"
+  threshold                 = "30"
+  alarm_description         = "This metric monitors autoscaling cpu utilization"
+  insufficient_data_actions = []
+  dimensions                = {
+         "AutoScalingGroupName" = "asterisk"
+        }
+# id                        = "CPU-Low"
+  tags                      = {}
 }
