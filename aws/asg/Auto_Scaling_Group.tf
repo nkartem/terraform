@@ -194,7 +194,9 @@ resource "aws_nat_gateway" "name_nat_gateway" {
   depends_on = [aws_internet_gateway.name_igw]
 }
 
-# Create security group
+
+
+###Create security group
 resource "aws_security_group" "name_security_bastion" {
   name        = "Bastion Security Group"
   description = "SecurityGroup ports 22 3389"
@@ -220,6 +222,104 @@ resource "aws_security_group" "name_security_bastion" {
     Name = "Security Group for Bastion server"
   }
 }
+
+
+resource "aws_security_group" "name_security_group_kamailio" {
+  name        = "Kamailio Security Group"
+  description = "SecurityGroup ports 22 5060 5061"
+  vpc_id      = aws_vpc.name_vpc.id
+
+dynamic "ingress" {
+ for_each = ["22","25","443","5060","5061","5222","5280","5269","1234","5672","11211","80"]
+
+    content    {
+      description      = "open ports"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+}
+
+dynamic "ingress" {
+ for_each = ["5050","5060","5061","53","69"]
+
+    content    {
+      description      = "open ports"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "udp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+}
+
+  ingress    {
+      description      = "open port 10000-20000"
+      from_port        = 10000
+      to_port          = 20000
+      protocol         = "udp"
+      cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  ingress    {
+      description      = "open port  4000-5999"
+      from_port        = 4000
+      to_port          = 5999
+      protocol         = "udp"
+      cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress    {
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+
+  tags = {
+    Name = "Security Group for Kamailio"
+  }
+}
+
+
+
+resource "aws_security_group" "name_security_group_asterisk" {
+  name        = "Asterisk Security Group"
+  description = "SecurityGroup ports 22 5060 5061 4569 5036 2727"
+  vpc_id      = aws_vpc.name_vpc.id
+
+dynamic "ingress" {
+ for_each = ["22","5060","5061","4569","5036","2727"]
+
+   content    {
+      description      = "open ports"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "udp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+}
+
+  ingress    {
+      description      = "open port  10000-20000"
+      from_port        = 10000
+      to_port          = 20000
+      protocol         = "udp"
+      cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress    {
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+
+  tags = {
+    Name = "Security Group for Asterisk"
+  }
+}
+
 
 resource "aws_security_group" "name_security_group1" {
   name        = "SomeName-1 Security Group"
@@ -286,15 +386,16 @@ dynamic "ingress" {
     Name = "Security Group for SomeName2"
   }
 }
+###################################################################
 
+######## Create EC2 instans ############################
 
-######## Create EC2 instans 
 resource "aws_instance" "bastion" {
     ami                   = "ami-08e2d37b6a0129927"
     instance_type         = "t1.micro"
     subnet_id   = aws_subnet.name_public_subnet.id
-    count = 2 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+    count = 1 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_bastion ]
 #    user_data = file("kamailio.sh")
     key_name = "ssh1"
 
@@ -303,13 +404,64 @@ lifecycle {
   create_before_destroy = true //  create a new instance and then remove old
 }
     tags = {
-      Name = "Bastion-kamailio"
+      Name = "Bastion"
       Subnet = "Public"
       OS = "Amazon Linux 2"
       Project = "name Project"
       Terraform = "Yes"
     }
 }
+
+
+resource "aws_instance" "kamailio" {
+    ami                   = "ami-08e2d37b6a0129927"
+    instance_type         = "t1.micro"
+    subnet_id   = aws_subnet.name_private_subnet.id
+    count = 2 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_group_kamailio.id ]
+#    user_data = file("kamailio.sh")
+    key_name = "ssh1"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "Kamailio"
+      Subnet = "Public"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
+
+
+
+resource "aws_instance" "asterisk" {
+    ami                   = "ami-08e2d37b6a0129927"
+    instance_type         = "t1.micro"
+    subnet_id   = aws_subnet.name_private_subnet.id
+#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_group_asterisk.id]
+#    user_data = file("script.sh")
+    key_name = "ssh1"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "asterisk"
+      Subnet = "Private"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
+
+
+
+
 
 resource "aws_instance" "server1" {
     ami                   = "ami-08e2d37b6a0129927"
