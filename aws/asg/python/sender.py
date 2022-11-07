@@ -2,6 +2,7 @@ import requests
 import json
 
 url = "https://pelevin.gpt.dobro.ai/generate/"
+url_aws = "https://api.aws.com"
 
 server_add = "add"
 server_remove = "remove"
