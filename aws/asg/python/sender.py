@@ -1,14 +1,25 @@
 import requests
 import json
 
-url = "https://pelevin.gpt.dobro.ai/generate/"
-url_aws = "https://api.aws.com"
+x = 4
 
-server_add = "add"
-server_remove = "remove"
-msg = "Твой текст!111111"
-data = {"prompt": msg}
+if x > 10:
+    url_add = "https://mca4o7gbln.execute-api.us-west-2.amazonaws.com/apitest/serv"
+    url = url_add
+    key1 = {"key1":"add"}
+    result = requests.post(url, data=json.dumps(key1))
+    print(result)
+    print(result.text)
+    print(result.ok)
 
-response = requests.post(url, data=json.dumps(data)).json()
-answer = response.get("replies")
-print(*answer)
+elif x <= 10:
+    url_remove = "https://mca4o7gbln.execute-api.us-west-2.amazonaws.com/apitest/serv/remove"
+    url = url_remove
+    key2 = {"key2":"remove"}
+    result = requests.post(url, data=json.dumps(key2))
+    print(result)
+    print(result.text)
+    print(result.ok)
+
+else:
+    print("nothing doing")
