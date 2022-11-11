@@ -4,7 +4,7 @@ import json
 x = 4
 
 if x > 10:
-    url_add = "https://mca4o7gbln.execute-api.us-west-2.amazonaws.com/apitest/serv"
+    url_add = "https://mcao7gblnc.execute-api.us-west-2.amazonaws.com/apitest/serv"
     url = url_add
     key1 = {"key1":"add"}
     result = requests.post(url, data=json.dumps(key1))
@@ -13,7 +13,7 @@ if x > 10:
     print(result.ok)
 
 elif x <= 10:
-    url_remove = "https://mca4o7gbln.execute-api.us-west-2.amazonaws.com/apitest/serv/remove"
+    url_remove = "https://mcao7gblnc.execute-api.us-west-2.amazonaws.com/apitest/serv/remove"
     url = url_remove
     key2 = {"key2":"remove"}
     result = requests.post(url, data=json.dumps(key2))
