@@ -13,7 +13,7 @@ provider "aws" {
 }
 
 
-## Launch templates
+####Create Launch templates
 resource "aws_launch_template" "nametmpl" {
   name                    = "mytmpl"
   description             = "mytmplapp"
@@ -391,7 +391,7 @@ dynamic "ingress" {
 }
 ###################################################################
 
-######## Create EC2 instans ############################
+################### Create EC2 instans ############################
 
 resource "aws_instance" "bastion" {
     ami                   = "ami-08e2d37b6a0129927"
@@ -463,6 +463,51 @@ lifecycle {
 }
 
 
+
+resource "aws_instance" "fileserver" {
+    ami                   = "ami-08e2d37b6a0129927"
+    instance_type         = "t1.micro"
+    subnet_id   = aws_subnet.name_private_subnet.id
+#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+#    user_data = file("script.sh")
+    key_name = "ssh1"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "fileserver"
+      Subnet = "Private"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
+
+
+resource "aws_instance" "monitoring" {
+    ami                   = "ami-08e2d37b6a0129927"
+    instance_type         = "t1.micro"
+    subnet_id   = aws_subnet.name_private_subnet.id
+#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+#    user_data = file("script.sh")
+    key_name = "ssh1"
+
+lifecycle {
+#  privent_destroy = true //can not destroy resource
+  create_before_destroy = true //  create a new instance and then remove old
+}
+    tags = {
+      Name = "monitoring"
+      Subnet = "Private"
+      OS = "Amazon Linux 2"
+      Project = "name Project"
+      Terraform = "Yes"
+    }
+}
 
 
 
