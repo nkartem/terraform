@@ -15,11 +15,11 @@ provider "aws" {
 
 ####Create Launch templates
 resource "aws_launch_template" "nametmpl" {
-  name                    = "mytmpl"
-  description             = "mytmplapp"
+  name                    = "mytmpl-asterisk"
+  description             = "mytmplappasterisk"
   image_id                = "ami-08e2d37b6a0129927"
   instance_type           = "t1.micro"
-  vpc_security_group_ids  = [aws_security_group.name_security_group1.id]
+  vpc_security_group_ids  = [aws_security_group.name_security_group_asterisk.id]
   ###subnet-08605e280d29b8494
   key_name = "ssh1"
   user_data = filebase64("${path.module}/install.sh")
@@ -28,16 +28,16 @@ resource "aws_launch_template" "nametmpl" {
     resource_type = "instance"
 
     tags = {
-      Name = "test"
+      Name = "asterisk"
       OS   = "AL2"
-      app  = "nginx"
+      Project = "ASG"
     }
   }
 }
 
 ## Autoscaling Group
 resource "aws_autoscaling_group" "asgname" {
-  name = "asg"
+  name = "asg-asterisk"
   desired_capacity   = 1
   min_size           = 1
   max_size           = 3
@@ -48,7 +48,7 @@ resource "aws_autoscaling_group" "asgname" {
 #  vpc_zone_identifier = aws_instance.server1
 #  vpc_security_group_ids = aws_security_group.name_security_group1.id
 #  availability_zones = "us-west-2b"
-  vpc_zone_identifier = [ aws_subnet.name_private_subnet.id ]
+  vpc_zone_identifier = [ aws_subnet.name_private_subnet_a.id ]
 
 
   launch_template {
@@ -74,13 +74,14 @@ resource "aws_autoscaling_group" "asgname" {
 
 # }
 
-######################################################
+#####################################################
 
 # Create VPC
 resource "aws_vpc" "name_vpc" {
   cidr_block = "10.10.0.0/16"
   tags = {
     Name = "name-vpc-terraform"
+    Project = "ASG"
   }
 }
 
@@ -89,12 +90,13 @@ resource "aws_internet_gateway" "name_igw" {
   vpc_id = aws_vpc.name_vpc.id
 
   tags = {
-    Name = "Internet Gateway Terraform"
+    Name = "Internet Gateway"
+    Project = "ASG"
   }
 }
 
 # Create subnet
-resource "aws_subnet" "name_public_subnet" {
+resource "aws_subnet" "name_public_subnet_b" {
   availability_zone = "us-west-2a"
   vpc_id     = aws_vpc.name_vpc.id
   cidr_block = "10.10.1.0/24"
@@ -102,28 +104,23 @@ resource "aws_subnet" "name_public_subnet" {
 
   tags = {
     Name = "Public"
+    Project = "ASG"
+    Serv = "kamailio"
   }
 }
 
-resource "aws_subnet" "name_private_subnet" {
+resource "aws_subnet" "name_private_subnet_a" {
   availability_zone = "us-west-2b"
   vpc_id     = aws_vpc.name_vpc.id
   cidr_block = "10.10.2.0/24"
 
   tags = {
     Name = "Private"
+    Project = "ASG"
+    Serv = "Asterisk-Kamailio"
   }
 }
 
-resource "aws_subnet" "name_database_subnet" {
-  availability_zone = "us-west-2b"
-  vpc_id     = aws_vpc.name_vpc.id
-  cidr_block = "10.10.3.0/24"
-
-  tags = {
-    Name = "Database"
-  }
-}
 
 # Create Route Table
 resource "aws_route_table" "name_route_table_public" {
@@ -140,43 +137,30 @@ resource "aws_route_table" "name_route_table_public" {
   }
 }
 
-resource "aws_route_table" "name_route_table_private" {
-  vpc_id = aws_vpc.name_vpc.id
+# resource "aws_route_table" "name_route_table_private" {
+#   vpc_id = aws_vpc.name_vpc.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.name_nat_gateway.id
-  }
+#   route {
+#     cidr_block = "0.0.0.0/0"
+#     nat_gateway_id = aws_nat_gateway.name_nat_gateway.id
+#   }
   
-  tags = {
-    Name = "name_route_table_private"
-  }
-}
+#   tags = {
+#     Name = "name_route_table_private"
+#   }
+# }
 
-resource "aws_route_table" "name_route_table_database" {
-  vpc_id = aws_vpc.name_vpc.id
-
-  route = []
-  
-  tags = {
-    Name = "name_route_table_database"
-  }
-}
 
 # association route table whith  subnet
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.name_public_subnet.id
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = aws_subnet.name_public_subnet_b.id
   route_table_id = aws_route_table.name_route_table_public.id
 }
 
 resource "aws_route_table_association" "private" {
-  subnet_id      = aws_subnet.name_private_subnet.id
-  route_table_id = aws_route_table.name_route_table_private.id
-}
-
-resource "aws_route_table_association" "database" {
-  subnet_id      = aws_subnet.name_database_subnet.id
-  route_table_id = aws_route_table.name_route_table_database.id
+  subnet_id      = aws_subnet.name_private_subnet_a.id
+#  route_table_id = aws_route_table.name_route_table_private.id
+  route_table_id = aws_route_table.name_route_table_public.id
 }
 
 # Create Elastic IP
@@ -184,47 +168,47 @@ resource "aws_eip" "eip1" {
 }
 
 
-# Create NAT Gateway
-resource "aws_nat_gateway" "name_nat_gateway" {
-  allocation_id = aws_eip.eip1.id
-  subnet_id     = aws_subnet.name_public_subnet.id
-  tags = {
-    Name = "gw NAT"
-  }
+# # Create NAT Gateway
+# resource "aws_nat_gateway" "name_nat_gateway" {
+#   allocation_id = aws_eip.eip1.id
+#   subnet_id     = aws_subnet.name_public_subnet.id
+#   tags = {
+#     Name = "gw NAT"
+#   }
 
-  # To ensure proper ordering, it is recommended to add an explicit dependency
-  # on the Internet Gateway for the VPC.
-  depends_on = [aws_internet_gateway.name_igw]
-}
+#   # To ensure proper ordering, it is recommended to add an explicit dependency
+#   # on the Internet Gateway for the VPC.
+#   depends_on = [aws_internet_gateway.name_igw]
+# }
 
 
 
 ###Create security group
-resource "aws_security_group" "name_security_bastion" {
-  name        = "Bastion Security Group"
-  description = "SecurityGroup ports 22 3389"
-  vpc_id      = aws_vpc.name_vpc.id
+# resource "aws_security_group" "name_security_bastion" {
+#   name        = "Bastion Security Group"
+#   description = "SecurityGroup ports 22 3389"
+#   vpc_id      = aws_vpc.name_vpc.id
 
-  ingress    {
-      description      = "open port ssh 22"
-      from_port        = 22
-      to_port          = 22
-      protocol         = "tcp"
-      cidr_blocks      = ["0.0.0.0/0"]
-  }
+#   ingress    {
+#       description      = "open port ssh 22"
+#       from_port        = 22
+#       to_port          = 22
+#       protocol         = "tcp"
+#       cidr_blocks      = ["0.0.0.0/0"]
+#   }
   
 
-  egress    {
-      from_port        = 0
-      to_port          = 0
-      protocol         = "-1"
-      cidr_blocks      = ["0.0.0.0/0"]
-    }
+#   egress    {
+#       from_port        = 0
+#       to_port          = 0
+#       protocol         = "-1"
+#       cidr_blocks      = ["0.0.0.0/0"]
+#     }
 
-  tags = {
-    Name = "Security Group for Bastion server"
-  }
-}
+#   tags = {
+#     Name = "Security Group for Bastion server"
+#   }
+# }
 
 
 resource "aws_security_group" "name_security_group_kamailio" {
@@ -245,7 +229,7 @@ dynamic "ingress" {
 }
 
 dynamic "ingress" {
- for_each = ["5050","5060","5061","53","69"]
+ for_each = ["5022","5050","5060","5061","53","69"]
 
     content    {
       description      = "open ports"
@@ -287,12 +271,12 @@ dynamic "ingress" {
 
 
 resource "aws_security_group" "name_security_group_asterisk" {
-  name        = "Asterisk Security Group"
-  description = "SecurityGroup ports 22 5060 5061 4569 5036 2727"
+  name        = "Asterisk"
+  description = "SecurityGroup ports 22 5060 5061 5022"
   vpc_id      = aws_vpc.name_vpc.id
 
 dynamic "ingress" {
- for_each = ["22","5060","5061","4569","5036","2727"]
+ for_each = ["22","5060","5061","5022"]
 
    content    {
       description      = "open ports"
@@ -323,43 +307,13 @@ dynamic "ingress" {
   }
 }
 
-
-resource "aws_security_group" "name_security_group1" {
-  name        = "SomeName-1 Security Group"
-  description = "SecurityGroup ports 22 443 80 8080"
+resource "aws_security_group" "name_security_nfs" {
+  name        = "NFS"
+  description = "SecurityGroup ports 22 2049"
   vpc_id      = aws_vpc.name_vpc.id
 
 dynamic "ingress" {
- for_each = ["22","443","8080", "80"]
-
-   content    {
-      description      = "open ports"
-      from_port        = ingress.value
-      to_port          = ingress.value
-      protocol         = "tcp"
-      cidr_blocks      = ["0.0.0.0/0"]
-    }
-}
-
-  egress    {
-      from_port        = 0
-      to_port          = 0
-      protocol         = "-1"
-      cidr_blocks      = ["0.0.0.0/0"]
-    }
-
-  tags = {
-    Name = "Security Group for SomeName1"
-  }
-}
-
-resource "aws_security_group" "name_security_group2" {
-  name        = "SomeName-2 Security Group"
-  description = "SecurityGroup ports 22 21 3389"
-  vpc_id      = aws_vpc.name_vpc.id
-
-dynamic "ingress" {
- for_each = ["22","21"]
+ for_each = ["22","2049"]
 
    content    {
       description      = "open ports"
@@ -370,13 +324,36 @@ dynamic "ingress" {
    }
 }
 
-  ingress    {
-      description      = "open port RDP 3389"
-      from_port        = 3389
-      to_port          = 3389
-      protocol         = "tcp"
-      cidr_blocks      = ["79.81.32.25/32"]
+  egress    {
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+
+  tags = {
+    Name = "NFS"
   }
+}
+
+
+
+resource "aws_security_group" "name_security_db" {
+  name        = "DB"
+  description = "SecurityGroup ports 3306 5432"
+  vpc_id      = aws_vpc.name_vpc.id
+
+dynamic "ingress" {
+ for_each = ["3306","5432"]
+
+   content    {
+      description      = "open ports"
+      from_port        = ingress.value
+      to_port          = ingress.value
+      protocol         = "tcp"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+}
 
   egress    {
       from_port        = 0
@@ -386,40 +363,40 @@ dynamic "ingress" {
     }
 
   tags = {
-    Name = "Security Group for SomeName2"
+    Name = "DB"
   }
 }
 ###################################################################
 
-################### Create EC2 instans ############################
+# ################### Create EC2 instans ############################
 
-resource "aws_instance" "bastion" {
-    ami                   = "ami-08e2d37b6a0129927"
-    instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_public_subnet.id
-    count = 1 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_bastion ]
-#    user_data = file("kamailio.sh")
-    key_name = "ssh1"
+# resource "aws_instance" "bastion" {
+#     ami                   = "ami-08e2d37b6a0129927"
+#     instance_type         = "t1.micro"
+#     subnet_id   = aws_subnet.name_public_subnet.id
+#     count = 1 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+#     vpc_security_group_ids = [ aws_security_group.name_security_bastion ]
+# #    user_data = file("kamailio.sh")
+#     key_name = "ssh1"
 
-lifecycle {
-#  privent_destroy = true //can not destroy resource
-  create_before_destroy = true //  create a new instance and then remove old
-}
-    tags = {
-      Name = "Bastion"
-      Subnet = "Public"
-      OS = "Amazon Linux 2"
-      Project = "name Project"
-      Terraform = "Yes"
-    }
-}
+# lifecycle {
+# #  privent_destroy = true //can not destroy resource
+#   create_before_destroy = true //  create a new instance and then remove old
+# }
+#     tags = {
+#       Name = "Bastion"
+#       Subnet = "Public"
+#       OS = "Amazon Linux 2"
+#       Project = "name Project"
+#       Terraform = "Yes"
+#     }
+# }
 
 
 resource "aws_instance" "kamailio" {
     ami                   = "ami-08e2d37b6a0129927"
     instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_private_subnet.id
+    subnet_id   = aws_subnet.name_private_subnet_a.id
     count = 2 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
     vpc_security_group_ids = [ aws_security_group.name_security_group_kamailio.id ]
 #    user_data = file("kamailio.sh")
@@ -440,37 +417,37 @@ lifecycle {
 
 
 
-resource "aws_instance" "asterisk" {
-    ami                   = "ami-08e2d37b6a0129927"
-    instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_private_subnet.id
-#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_group_asterisk.id]
-#    user_data = file("script.sh")
-    key_name = "ssh1"
+# resource "aws_instance" "asterisk" {
+#     ami                   = "ami-08e2d37b6a0129927"
+#     instance_type         = "t1.micro"
+#     subnet_id   = aws_subnet.name_private_subnet_a.id
+# #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+#     vpc_security_group_ids = [ aws_security_group.name_security_group_asterisk.id]
+# #    user_data = file("script.sh")
+#     key_name = "ssh1"
 
-lifecycle {
-#  privent_destroy = true //can not destroy resource
-  create_before_destroy = true //  create a new instance and then remove old
-}
-    tags = {
-      Name = "asterisk"
-      Subnet = "Private"
-      OS = "Amazon Linux 2"
-      Project = "name Project"
-      Terraform = "Yes"
-    }
-}
+# lifecycle {
+# #  privent_destroy = true //can not destroy resource
+#   create_before_destroy = true //  create a new instance and then remove old
+# }
+#     tags = {
+#       Name = "asterisk"
+#       Subnet = "Private"
+#       OS = "Amazon Linux 2"
+#       Project = "name Project"
+#       Terraform = "Yes"
+#     }
+# }
 
 
 
 resource "aws_instance" "fileserver" {
     ami                   = "ami-08e2d37b6a0129927"
     instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_private_subnet.id
-#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
-#    user_data = file("script.sh")
+    subnet_id   = aws_subnet.name_private_subnet_a.id
+##   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+    vpc_security_group_ids = [ aws_security_group.name_security_nfs.id ]
+    user_data = file("nfs/install_nfs.sh")
     key_name = "ssh1"
 
 lifecycle {
@@ -478,109 +455,86 @@ lifecycle {
   create_before_destroy = true //  create a new instance and then remove old
 }
     tags = {
-      Name = "fileserver"
+      Name = "NFS"
       Subnet = "Private"
       OS = "Amazon Linux 2"
-      Project = "name Project"
+      Project = "ASG"
       Terraform = "Yes"
     }
 }
 
 
-resource "aws_instance" "monitoring" {
-    ami                   = "ami-08e2d37b6a0129927"
-    instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_private_subnet.id
-#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
-#    user_data = file("script.sh")
-    key_name = "ssh1"
+# # resource "aws_instance" "monitoring" {
+# #     ami                   = "ami-08e2d37b6a0129927"
+# #     instance_type         = "t1.micro"
+# #     subnet_id   = aws_subnet.name_private_subnet.id
+# # #   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
+# #     vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
+# # #    user_data = file("script.sh")
+# #     key_name = "ssh1"
 
-lifecycle {
-#  privent_destroy = true //can not destroy resource
-  create_before_destroy = true //  create a new instance and then remove old
-}
-    tags = {
-      Name = "monitoring"
-      Subnet = "Private"
-      OS = "Amazon Linux 2"
-      Project = "name Project"
-      Terraform = "Yes"
-    }
-}
+# # lifecycle {
+# # #  privent_destroy = true //can not destroy resource
+# #   create_before_destroy = true //  create a new instance and then remove old
+# # }
+# #     tags = {
+# #       Name = "monitoring"
+# #       Subnet = "Private"
+# #       OS = "Amazon Linux 2"
+# #       Project = "name Project"
+# #       Terraform = "Yes"
+# #     }
+# # }
 
 
+# ############### EBS ############
+# resource "aws_ebs_volume" "example" {
+#   availability_zone = "us-west-2b"
+#   type = "io2"
+#   size = 5
+#   iops = 100
 
-resource "aws_instance" "server1" {
-    ami                   = "ami-08e2d37b6a0129927"
-    instance_type         = "t1.micro"
-    subnet_id   = aws_subnet.name_private_subnet.id
-#   count = 3 //the number of servers to create. To delete an instance, enter 0 or use the "terraform destroy" command.
-    vpc_security_group_ids = [ aws_security_group.name_security_bastion.id ]
-#    user_data = file("script.sh")
-    key_name = "ssh1"
+#   tags = {
+#     Name = "Share"
+#     Project = "asg"
+#   }
+# }
 
-lifecycle {
-#  privent_destroy = true //can not destroy resource
-  create_before_destroy = true //  create a new instance and then remove old
-}
-    tags = {
-      Name = "server1-app"
-      Subnet = "Private"
-      OS = "Amazon Linux 2"
-      Project = "name Project"
-      Terraform = "Yes"
-    }
-}
+# # ########## RDS #############
+# # module "cluster" {
+# #   source  = "terraform-aws-modules/rds-aurora/aws"
 
-############### EBS ############
-resource "aws_ebs_volume" "example" {
-  availability_zone = "us-west-2b"
-  type = "io2"
-  size = 5
-  iops = 100
+# #   name           = "test-aurora-db-postgres96"
+# #   engine         = "aurora-postgresql"
+# #   engine_version = "11.12"
+# #   instance_class = "db.t4g.medium"
+# #   instances = {
+# #     one = {}
+# #     2 = {
+# #       instance_class = "db.t4g.medium"
+# #     }
+# #   }
 
-  tags = {
-    Name = "Share"
-    Project = "asg"
-  }
-}
+# #   vpc_id = aws_vpc.name_vpc.id
+# #   subnets = aws_subnet.name_database_subnet.id
 
-########## RDS #############
-module "cluster" {
-  source  = "terraform-aws-modules/rds-aurora/aws"
+# #   allowed_security_groups = [ aws_security_group.name_security_group2.id ]
+# # #  allowed_cidr_blocks     = ["10.20.0.0/20"]
 
-  name           = "test-aurora-db-postgres96"
-  engine         = "aurora-postgresql"
-  engine_version = "11.12"
-  instance_class = "db.t4g.medium"
-  instances = {
-    one = {}
-    2 = {
-      instance_class = "db.t4g.medium"
-    }
-  }
+# #   storage_encrypted   = true
+# #   apply_immediately   = true
+# #   monitoring_interval = 10
 
-  vpc_id = aws_vpc.name_vpc.id
-  subnets = aws_subnet.name_database_subnet.id
+# #   db_parameter_group_name         = "default"
+# #   db_cluster_parameter_group_name = "default"
 
-  allowed_security_groups = [ aws_security_group.name_security_group2.id ]
-#  allowed_cidr_blocks     = ["10.20.0.0/20"]
+# #   #enabled_cloudwatch_logs_exports = ["postgresql"]
 
-  storage_encrypted   = true
-  apply_immediately   = true
-  monitoring_interval = 10
-
-  db_parameter_group_name         = "default"
-  db_cluster_parameter_group_name = "default"
-
-  #enabled_cloudwatch_logs_exports = ["postgresql"]
-
-  tags = {
-    Environment = "dev"
-    Terraform   = "true"
-  }
-}
+# #   tags = {
+# #     Environment = "dev"
+# #     Terraform   = "true"
+# #   }
+# # }
 
 
 
@@ -622,4 +576,128 @@ resource "aws_cloudwatch_metric_alarm" "CPU-Low" {
         }
 # id                        = "CPU-Low"
   tags                      = {}
+}
+
+
+
+############# Lambda function #################
+
+resource "aws_iam_role" "iam_for_lambda" {
+  name = "iam_for_lambda"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "lambda_policy" {
+  name   = "lambda-iam-role-policy"
+#  tags   = var.tags
+  policy = <<EOF
+{
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Sid"   : "LoggingPermissions",
+              "Effect": "Allow",
+              "Action": [
+                  "logs:CreateLogGroup",
+                  "logs:CreateLogStream",
+                  "logs:PutLogEvents"
+              ],
+              "Resource": [
+                  "arn:aws:logs:*:*:*"
+              ]
+          }
+      ]
+}
+EOF
+}
+
+resource "aws_iam_policy_attachment" "lambda" {
+  name       = "lambda-iam-policy-attachment"
+  roles      = [aws_iam_role.iam_for_lambda.name]
+  policy_arn = aws_iam_policy.lambda_policy.arn
+}
+
+
+resource "aws_lambda_function" "add-lambda" {
+  function_name = "add-lambda"
+  description   = "My awesome lambda function"
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.9"
+  role          = aws_iam_role.iam_for_lambda.arn
+  publish       = false
+  filename      = "lambda-src/add_lambda.zip"
+  tags = {
+    Name = "add_lambda"
+  }
+}
+
+resource "aws_lambda_function" "remove-lambda" {
+  function_name = "remove-lambda"
+  description   = "My awesome lambda function"
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.9"
+  role          = aws_iam_role.iam_for_lambda.arn
+  publish       = false
+  filename      = "lambda-src/remove_lambda.zip"
+  tags = {
+    Name = "remove_lambda"
+  }
+}
+
+
+
+################# API GateWay ##################
+
+resource "aws_api_gateway_rest_api" "api-asg" {
+  name = "asg"
+  
+  body = jsonencode({
+    openapi = "3.0.1"
+    info = {
+      title   = "api-asg"
+      version = "1.0"
+    }
+    paths = {
+      "/add" = {
+        post = {
+          x-amazon-apigateway-integration = {
+            httpMethod           = "POST"
+            payloadFormatVersion = "1.0"
+            type                 = "HTTP_PROXY"
+            uri                  = "https://ip-ranges.amazonaws.com/ip-ranges.json"
+          }
+        }
+      }
+      "/remove" = { 
+        post = {
+          x-amazon-apigateway-integration = {
+            httpMethod           = "POST"
+            payloadFormatVersion = "1.0"
+            type                 = "HTTP_PROXY"
+            uri                  = "https://ip-ranges.amazonaws.com/ip-ranges1.json"
+          }
+        }
+      }
+    }
+
+  })
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
 }
