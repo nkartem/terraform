@@ -13,7 +13,7 @@ if x > 10:
     print(result.ok)
 
 elif x <= 10:
-    url_remove = "https://q5z53tz230.execute-api.us-west-2.amazonaws.com/remove-stage/addremove"
+    url_remove = "https://q5z53tz230.execute-api.us-west-2.amazonaws.com/remove-stage/remove"
     url = url_remove
     key2 = {"key2":"remove"}
     result = requests.post(url, data=json.dumps(key2))
