@@ -162,10 +162,7 @@ resource "aws_route_table_association" "k8s_subnet_private2_eu_west_1b" {
 
 
 
-
-
-
-
+##### Security group #####
 
 resource "aws_security_group" "eks_cluster_sg_emulations" {
   name        = "eks-cluster-sg-emulations"
@@ -224,5 +221,39 @@ dynamic "ingress" {
     Name = "eks-cluster-sg-emulations"
     aws-eks-cluster-name = "emulations"
     owner = "kubernetes.io/cluster/emulations"
+  }
+}
+
+
+resource "aws_security_group" "k8s-nfs-sg" {
+  name        = "k8s-nfs-sg"
+  description = "k8s-nfs-sg"
+  vpc_id      = aws_vpc.k8s.id
+
+  ingress    {
+      description      = "SSH"
+      from_port        = 22
+      to_port          = 22
+      protocol         = "tcp"
+      cidr_blocks      = ["80.82.31.110/32", "212.90.172.68/32", "54.80.194.73/32"]
+  }
+
+  ingress    {
+      description      = "NFS"
+      from_port        = 2049
+      to_port          = 2049
+      protocol         = "tcp"
+      cidr_blocks      = ["10.20.0.0/16"]
+  }
+
+  egress    {
+      from_port        = 0
+      to_port          = 0
+      protocol         = "-1"
+      cidr_blocks      = ["0.0.0.0/0"]
+    }
+
+  tags = {
+    Name = "k8s-nfs-sg"
   }
 }
