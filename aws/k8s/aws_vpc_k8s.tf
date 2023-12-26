@@ -3,6 +3,7 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 3.58.0"
+
     }
   }
 }
@@ -40,7 +41,7 @@ resource "aws_subnet" "k8s_subnet_public1_eu_west_1a" {
   map_public_ip_on_launch = true
 
   tags = {
-    "Name"                            = "public-eu-west-1a"
+    "Name"                            = "public1-eu-west-1a"
     "kubernetes.io/role/internal-elb" = "1"
     "kubernetes.io/cleuter/demo-2"    = "owned"
   }
@@ -52,7 +53,7 @@ resource "aws_subnet" "k8s_subnet_private1_eu_west_1a" {
   availability_zone = "eu-west-1a"
 
   tags = {
-    "Name"                            = "private-eu-west-1a"
+    "Name"                            = "private1-eu-west-1a"
     "kubernetes.io/role/internal-elb" = "1"
     "kubernetes.io/cleuter/demo-2"    = "owned"
   }
@@ -65,7 +66,7 @@ resource "aws_subnet" "k8s_subnet_public2_eu_west_1b" {
   map_public_ip_on_launch = true
 
   tags = {
-    "Name"                         = "public-eu-west-1a"
+    "Name"                         = "public2-eu-west-1a"
     "kubernetes.io/role/elb"       = "1"
     "kubernetes.io/cleuter/demo-2" = "owned"
   }
@@ -77,7 +78,7 @@ resource "aws_subnet" "k8s_subnet_private2_eu_west_1b" {
   availability_zone       = "eu-west-1b"
 
   tags = {
-    "Name"                         = "private-eu-west-1b"
+    "Name"                         = "private2-eu-west-1b"
     "kubernetes.io/role/elb"       = "1"
     "kubernetes.io/cleuter/demo-2" = "owned"
   }
@@ -96,22 +97,18 @@ resource "aws_route_table" "k8s_rtb_public" {
     gateway_id = aws_internet_gateway.igw.id
   }
 
-  route {
-    cidr_block = "10.20.0.0/20"
-    gateway_id = aws_vpc.k8s.id
-  }
 
   tags = {
-    Name = "public and local"
+    Name = "k8s-rtb-public"
+    network = "public and local"
   }
 }
-
-
 
 resource "aws_route_table_association" "k8s_subnet_public1_eu_west_1a" {
   subnet_id      = aws_subnet.k8s_subnet_public1_eu_west_1a.id
   route_table_id = aws_route_table.k8s_rtb_public.id
 }
+
 
 resource "aws_route_table_association" "k8s_subnet_public2_eu_west_1b" {
   subnet_id      = aws_subnet.k8s_subnet_public2_eu_west_1b.id
@@ -123,13 +120,10 @@ resource "aws_route_table_association" "k8s_subnet_public2_eu_west_1b" {
 resource "aws_route_table" "k8s_rtb_private1_eu_west_1a" {
     vpc_id = aws_vpc.k8s.id
 
-  route {
-    cidr_block = "10.20.0.0/20"
-    gateway_id = aws_vpc.k8s.id
-  }
   
-    tags = {
-    Name = "local"
+  tags = {
+    Name = "k8s_rtb_private1_eu_west_1a"
+    network = "local"
   }
 }
 
@@ -142,13 +136,10 @@ resource "aws_route_table_association" "k8s_subnet_private1_eu_west_1a" {
 resource "aws_route_table" "k8s_rtb_private2_eu_west_1b" {
     vpc_id = aws_vpc.k8s.id
 
-  route {
-    cidr_block = "10.20.0.0/20"
-    gateway_id = aws_vpc.k8s.id
-  }
   
-    tags = {
-    Name = "local"
+  tags = {
+    Name = "k8s_rtb_private2_eu_west_1a"
+    network = "local"
   }
 }
 
@@ -189,8 +180,8 @@ dynamic "ingress" {
       from_port        = ingress.value
       to_port          = ingress.value
       protocol         = "tcp"
-      #cidr_blocks      = ["0.0.0.0/0"]
-      cidr_blocks = eks_cluster_sg_emulations.id
+      cidr_blocks      = ["0.0.0.0/0"]
+      #cidr_blocks = eks_cluster_sg_emulations.id
     }
 }
 
@@ -207,7 +198,7 @@ dynamic "ingress" {
       from_port        = 32511
       to_port          = 32511
       protocol         = "tcp"
-      cidr_blocks      = ["1.2.3.4/0"]
+      cidr_blocks      = ["1.2.3.4/32"]
   }
 
   egress    {
