@@ -1,12 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
-provider "aws" {
-  region = var.region
-}
-
-# Filter out local zones, which are not currently supported 
-# with managed node groups
 data "aws_availability_zones" "available" {
   filter {
     name   = "opt-in-status"
@@ -23,96 +14,72 @@ resource "random_string" "suffix" {
   special = false
 }
 
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
 
-  name = "education-vpc"
+########################################################
+########################################################
 
-  cidr = "10.0.0.0/16"
-  azs  = slice(data.aws_availability_zones.available.names, 0, 3)
+resource "aws_eks_cluster" "example" {
+  name     = var.aws_eks_cluster_name
+  role_arn = "arn:aws:iam::1234567890:role/AmazonEKSCluster_PersonDevOps"
 
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  public_subnets  = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
-
-  enable_nat_gateway   = true
-  single_nat_gateway   = true
-  enable_dns_hostnames = true
-
-  public_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/elb"                      = 1
-  }
-
-  private_subnet_tags = {
-    "kubernetes.io/cluster/${local.cluster_name}" = "shared"
-    "kubernetes.io/role/internal-elb"             = 1
+  vpc_config {
+    security_group_ids = [ aws_security_group.eks_cluster_sg_emulations.id ]
+    endpoint_private_access = true
+    endpoint_public_access  = true
+    subnet_ids = [aws_subnet.k8s_subnet_private1_eu_west_1a.id, aws_subnet.k8s_subnet_private2_eu_west_1b.id, 
+                  aws_subnet.k8s_subnet_public1_eu_west_1a.id, aws_subnet.k8s_subnet_public2_eu_west_1b.id]
   }
 }
 
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "19.15.3"
+output "endpoint" {
+  value = aws_eks_cluster.example.endpoint
+}
 
-  cluster_name    = local.cluster_name
-  cluster_version = "1.27"
 
-  vpc_id                         = module.vpc.vpc_id
-  subnet_ids                     = module.vpc.private_subnets
-  cluster_endpoint_public_access = true
+resource "aws_eks_addon" "vpccni" {
+  cluster_name                = aws_eks_cluster.example.name
+  addon_name                  = "vpc-cni"
+  addon_version               = "v1.14.1-eksbuild.1"
+  resolve_conflicts_on_update = "PRESERVE"
+}
 
-  eks_managed_node_group_defaults = {
-    ami_type = "AL2_x86_64"
+resource "aws_eks_addon" "kube-proxy" {
+  cluster_name                = aws_eks_cluster.example.name
+  addon_name                  = "kube-proxy"
+  addon_version               = "v1.28.1-eksbuild.1"
+  resolve_conflicts_on_update = "PRESERVE"
+}
 
+# resource "aws_eks_addon" "coredns" {
+#   cluster_name                = aws_eks_cluster.example.name
+#   addon_name                  = "coredns"
+#   addon_version               = "v1.10.1-eksbuild.2"
+#   resolve_conflicts_on_update = "PRESERVE"
+# }
+
+resource "aws_eks_addon" "eks-pod-identity-agent" {
+  cluster_name                = aws_eks_cluster.example.name
+  addon_name                  = "eks-pod-identity-agent"
+  addon_version               = "v1.0.0-eksbuild.1"
+  resolve_conflicts_on_update = "PRESERVE"
+}
+
+
+resource "aws_eks_node_group" "ng2" {
+  cluster_name    = aws_eks_cluster.example.name
+  node_group_name = "ng2"
+  disk_size = var.disk_size_ng
+  ami_type = "AL2_x86_64"
+  instance_types = [var.instance_types_ng]
+  node_role_arn   = "arn:aws:iam::1234567890:role/AmazonEKSNodeRole_PersonDevOps" 
+  subnet_ids      = [aws_subnet.k8s_subnet_public1_eu_west_1a.id]
+  scaling_config {
+    desired_size = 1
+    max_size     = 3
+    min_size     = 1
   }
 
-  eks_managed_node_groups = {
-    one = {
-      name = "node-group-1"
-
-      instance_types = ["t3.small"]
-
-      min_size     = 1
-      max_size     = 3
-      desired_size = 2
-    }
-
-    two = {
-      name = "node-group-2"
-
-      instance_types = ["t3.small"]
-
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
-    }
-  }
-}
-
-
-# https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/ 
-data "aws_iam_policy" "ebs_csi_policy" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
-
-module "irsa-ebs-csi" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version = "4.7.0"
-
-  create_role                   = true
-  role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
-  provider_url                  = module.eks.oidc_provider
-  role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
-  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
-}
-
-resource "aws_eks_addon" "ebs-csi" {
-  cluster_name             = module.eks.cluster_name
-  addon_name               = "aws-ebs-csi-driver"
-  addon_version            = "v1.20.0-eksbuild.1"
-  service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
-  tags = {
-    "eks_addon" = "ebs-csi"
-    "terraform" = "true"
+  update_config {
+    max_unavailable = 1
   }
 }

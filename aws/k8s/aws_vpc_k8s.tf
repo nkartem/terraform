@@ -1,19 +1,3 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.58.0"
-
-    }
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = "eu-west-1"
-}
-
-
 resource "aws_vpc" "k8s" {
   cidr_block = "10.20.0.0/16"
 
@@ -21,7 +5,7 @@ resource "aws_vpc" "k8s" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "k8s"
+    Name = var.vpc_name
   }
 }
 
@@ -85,10 +69,6 @@ resource "aws_subnet" "k8s_subnet_private2_eu_west_1b" {
 }
 
 
-
-
-
-
 resource "aws_route_table" "k8s_rtb_public" {
   vpc_id = aws_vpc.k8s.id
 
@@ -115,6 +95,11 @@ resource "aws_route_table_association" "k8s_subnet_public2_eu_west_1b" {
   route_table_id = aws_route_table.k8s_rtb_public.id
 }
 
+
+resource "aws_main_route_table_association" "a" {
+  vpc_id         = aws_vpc.k8s.id
+  route_table_id = aws_route_table.k8s_rtb_public.id
+}
 
 
 resource "aws_route_table" "k8s_rtb_private1_eu_west_1a" {
@@ -226,7 +211,7 @@ resource "aws_security_group" "k8s-nfs-sg" {
       from_port        = 22
       to_port          = 22
       protocol         = "tcp"
-      cidr_blocks      = ["80.82.31.110/32", "212.90.172.68/32", "54.80.194.73/32"]
+      cidr_blocks      = ["12.34.45.66/32", "12.34.45.66/32", "12.34.45.66/32"]
   }
 
   ingress    {
